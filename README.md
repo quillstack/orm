@@ -170,6 +170,36 @@ Values survive the round trip whatever the driver hands back: `int`, `float`, `b
 `DateTimeImmutable` and backed enums are all brought to the type the property declares. The
 same row read twice is the same object, so `===` answers what a person means by it.
 
+### Asking about a relation
+
+Whether a row has anything on the other side is asked as a question about the relation, not
+about the columns behind it — which way round the join goes is already written on the entity:
+
+```php
+$users->get($users->whereHas('posts'));
+$users->get($users->whereHas('posts', fn (Query $q) => $q->where('title', 'LIKE', '%php%')));
+$users->get($users->whereDoesntHave('posts'));
+```
+
+It works for every kind of relation, the one through a table in between included.
+
+### Pages
+
+```php
+$page = $users->page($users->whereHas('posts')->orderBy('email'), page: 2, perPage: 20);
+
+$page->items;      // User[]
+$page->total;      // how many there are altogether
+$page->pages();
+$page->hasMore();
+foreach ($page as $user) { … }
+```
+
+Two queries however large the page — one to count, one to read — and none at all beyond the
+count where there is nothing to read. The entities on a page share a result set, so their
+relations still load for the whole page at once: a filtered, sorted, paged list with its
+relations walked is three queries.
+
 ## The schema comes from the entities
 
 There are no migration files to write and none to keep in order. The entities are the
