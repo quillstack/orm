@@ -93,6 +93,20 @@ nothing because there is nothing left to fetch.
 It works the same in the other direction — forty posts and the author of each is two queries,
 not forty-one — and for a relation with one row on the other side.
 
+A relation going through a table in between is one step longer and the same promise: the pairs
+first, then everything they point at. Twenty posts and their tags is three queries.
+
+```php
+#[BelongsToMany(Tag::class, table: 'post_tag', foreignKey: 'post_id', relatedKey: 'tag_id')]
+public readonly Related $tags = new Related();
+```
+
+```sql
+SELECT * FROM "posts"
+SELECT "post_id", "tag_id" FROM "post_tag" WHERE "post_id" IN (…)
+SELECT * FROM "tags" WHERE "id" IN (…)
+```
+
 ## Relations are asked, not read
 
 `$user->posts` is a `Related`, `$post->user` a `Reference`:
@@ -155,6 +169,9 @@ CREATE TABLE "posts" (
 )
 CREATE INDEX "posts_user_id_index" ON "posts" ("user_id")
 ```
+
+The table in between two others is made the same way, from the relation alone: two columns,
+an index and a foreign key on each, and a pair which cannot repeat. Nobody writes it.
 
 A column can ask for more: `#[Column(length: 40, unique: true)]`, `#[Column(index: true)]`,
 `#[Column(length: 0)]` for text with no limit. Everything else follows the property's own

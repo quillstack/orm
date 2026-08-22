@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Quillstack\Orm;
 
 use Quillstack\Orm\Metadata\AssociationMetadata;
+use Quillstack\Orm\Metadata\EntityMetadata;
 
 /**
  * The result set a group of entities came from, and what makes one query per row impossible.
@@ -36,6 +37,75 @@ class LoadContext
     public function __construct(private readonly Orm $orm)
     {
         //
+    }
+
+    /**
+     * A relation reached through a table in between: the pairs first, then everything they
+     * point at, in one query each. Two queries for the whole set, however many owners there
+     * are — the same promise as everywhere else, just one step longer.
+     *
+     * @param array<int, int|string> $values
+     *
+     * @return array<string, array<int, object>>
+     */
+    private function loadThrough(
+        AssociationMetadata $association,
+        EntityMetadata $target,
+        array $values
+    ): array {
+        $through = (string) $association->through;
+        $ownerColumn = (string) $association->throughOwnerColumn;
+        $targetColumn = (string) $association->throughTargetColumn;
+
+        $pairs = $this->orm->connection()
+            ->table($through)
+            ->select($ownerColumn, $targetColumn)
+            ->whereIn($ownerColumn, $values)
+            ->get();
+
+        $targetIds = [];
+
+        foreach ($pairs as $pair) {
+            $id = $pair[$targetColumn] ?? null;
+
+            if (is_int($id) || is_string($id)) {
+                $targetIds[(string) $id] = $id;
+            }
+        }
+
+        if ($targetIds === []) {
+            return [];
+        }
+
+        $rows = $this->orm->connection()
+            ->table($target->table)
+            ->whereIn($target->id->column, array_values($targetIds))
+            ->get();
+
+        $context = new self($this->orm);
+        $byId = [];
+
+        foreach ($rows as $row) {
+            $id = $row[$target->id->column] ?? null;
+
+            if (is_int($id) || is_string($id)) {
+                $byId[(string) $id] = $this->orm->hydrate($target, $row, $context);
+            }
+        }
+
+        $grouped = [];
+
+        foreach ($pairs as $pair) {
+            $owner = $pair[$ownerColumn] ?? null;
+            $id = $pair[$targetColumn] ?? null;
+
+            if ((is_int($owner) || is_string($owner)) && (is_int($id) || is_string($id))
+                && isset($byId[(string) $id])) {
+                $grouped[(string) $owner][] = $byId[(string) $id];
+            }
+        }
+
+        return $grouped;
     }
 
     /**
@@ -96,6 +166,10 @@ class LoadContext
         }
 
         $target = $this->orm->metadata($association->target);
+
+        if ($association->kind === AssociationMetadata::BELONGS_TO_MANY) {
+            return $this->loadThrough($association, $target, $values);
+        }
 
         // A relation pointing away from here matches the other entity's id, which is only
         // known once that entity has been read.

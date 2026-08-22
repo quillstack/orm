@@ -10,6 +10,7 @@ use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 use Quillstack\Orm\Attributes\BelongsTo;
+use Quillstack\Orm\Attributes\BelongsToMany;
 use Quillstack\Orm\Attributes\Column;
 use Quillstack\Orm\Attributes\HasMany;
 use Quillstack\Orm\Attributes\HasOne;
@@ -82,6 +83,19 @@ class MetadataFactory
                     );
                 }
 
+                if ($instance instanceof BelongsToMany) {
+                    $associations[$name] = new AssociationMetadata(
+                        $name,
+                        $instance->target,
+                        AssociationMetadata::BELONGS_TO_MANY,
+                        '',
+                        '',
+                        $instance->table,
+                        $instance->foreignKey,
+                        $instance->relatedKey
+                    );
+                }
+
                 if ($instance instanceof BelongsTo) {
                     $associations[$name] = new AssociationMetadata(
                         $name,
@@ -128,7 +142,10 @@ class MetadataFactory
                     $association->target,
                     $association->kind,
                     $id->column,
-                    $association->targetColumn
+                    $association->targetColumn,
+                    $association->through,
+                    $association->throughOwnerColumn,
+                    $association->throughTargetColumn
                 );
         }
 

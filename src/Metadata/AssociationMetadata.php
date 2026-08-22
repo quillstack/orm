@@ -16,16 +16,26 @@ final class AssociationMetadata
     public const HAS_MANY = 'has-many';
     public const HAS_ONE = 'has-one';
     public const BELONGS_TO = 'belongs-to';
+    public const BELONGS_TO_MANY = 'belongs-to-many';
 
     /**
      * @param class-string $target
+     */
+    /**
+     * @param class-string $target
+     * @param ?string $through the table in between, where the relation goes through one
+     * @param ?string $throughOwnerColumn the column there holding this entity's id
+     * @param ?string $throughTargetColumn the column there holding the other entity's id
      */
     public function __construct(
         public readonly string $property,
         public readonly string $target,
         public readonly string $kind,
         public readonly string $ownerColumn,
-        public readonly string $targetColumn
+        public readonly string $targetColumn,
+        public readonly ?string $through = null,
+        public readonly ?string $throughOwnerColumn = null,
+        public readonly ?string $throughTargetColumn = null
     ) {
         //
     }
@@ -35,7 +45,7 @@ final class AssociationMetadata
      */
     public function isToOne(): bool
     {
-        return $this->kind !== self::HAS_MANY;
+        return $this->kind === self::HAS_ONE || $this->kind === self::BELONGS_TO;
     }
 
     /**
@@ -44,6 +54,6 @@ final class AssociationMetadata
      */
     public function key(): string
     {
-        return "{$this->target}::{$this->property}::{$this->ownerColumn}::{$this->targetColumn}";
+        return "{$this->target}::{$this->property}::{$this->ownerColumn}::{$this->targetColumn}::{$this->through}";
     }
 }

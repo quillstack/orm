@@ -29,7 +29,9 @@ class MySqlGrammar implements SchemaGrammar
             $parts[] = '  ' . $this->column($column);
         }
 
-        $parts[] = '  PRIMARY KEY (' . $this->dialect->quoteIdentifier($table->primaryKey) . ')';
+        if ($table->hasOwnKey) {
+            $parts[] = '  PRIMARY KEY (' . $this->dialect->quoteIdentifier($table->primaryKey) . ')';
+        }
 
         foreach ($table->foreignKeys as $key) {
             $parts[] = '  ' . $this->foreignKey($key);

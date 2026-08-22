@@ -26,7 +26,7 @@ class SqliteGrammar implements SchemaGrammar
         $parts = [];
 
         foreach ($table->columns as $column) {
-            $parts[] = '  ' . $this->column($column, $column->name === $table->primaryKey);
+            $parts[] = '  ' . $this->column($column, $table->hasOwnKey && $column->name === $table->primaryKey);
         }
 
         foreach ($table->foreignKeys as $key) {

@@ -84,6 +84,12 @@ class SchemaBuilder
         foreach ($metadata->associations as $association) {
             $target = $this->metadata->for($association->target);
 
+            if ($association->kind === AssociationMetadata::BELONGS_TO_MANY) {
+                $tables = $this->withJoiningTable($tables, $metadata, $target, $association);
+
+                continue;
+            }
+
             // The column holding the other table's id is on the many side, whichever side
             // declared the relation.
             [$table, $column, $references, $referencesColumn] =
@@ -109,6 +115,60 @@ class SchemaBuilder
                 ]
             );
         }
+
+        return $tables;
+    }
+
+    /**
+     * The table in between, which no entity describes and nobody should have to write: two
+     * columns, an index and a foreign key on each, and a pair which cannot repeat.
+     *
+     * @param array<string, TableSchema> $tables
+     *
+     * @return array<string, TableSchema>
+     */
+    private function withJoiningTable(
+        array $tables,
+        EntityMetadata $metadata,
+        EntityMetadata $target,
+        AssociationMetadata $association
+    ): array {
+        $name = (string) $association->through;
+        $ownerColumn = (string) $association->throughOwnerColumn;
+        $targetColumn = (string) $association->throughTargetColumn;
+
+        // Both sides may declare the same relation; the table is the same table. And where
+        // the other entity is not among the ones asked about, there is nothing to point the
+        // second key at, so the table in between is not this migration's business either.
+        if (isset($tables[$name]) || !isset($tables[$target->table])) {
+            return $tables;
+        }
+
+        $pairName = IndexSchema::nameFor($name, [$ownerColumn, $targetColumn], true);
+        $ownerKey = ForeignKeySchema::nameFor($name, $ownerColumn);
+        $targetKey = ForeignKeySchema::nameFor($name, $targetColumn);
+
+        $tables[$name] = new TableSchema(
+            $name,
+            [
+                $ownerColumn => new ColumnSchema($ownerColumn, $this->typeOf($metadata->id->type)),
+                $targetColumn => new ColumnSchema($targetColumn, $this->typeOf($target->id->type)),
+            ],
+            // The pair is what tells one row from another here, so there is no id of its own.
+            $ownerColumn,
+            [
+                $pairName => new IndexSchema($pairName, [$ownerColumn, $targetColumn], true),
+                IndexSchema::nameFor($name, [$targetColumn]) => new IndexSchema(
+                    IndexSchema::nameFor($name, [$targetColumn]),
+                    [$targetColumn]
+                ),
+            ],
+            [
+                $ownerKey => new ForeignKeySchema($ownerKey, $ownerColumn, $metadata->table, $metadata->id->column),
+                $targetKey => new ForeignKeySchema($targetKey, $targetColumn, $target->table, $target->id->column),
+            ],
+            hasOwnKey: false
+        );
 
         return $tables;
     }

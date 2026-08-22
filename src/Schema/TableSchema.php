@@ -19,7 +19,12 @@ final class TableSchema
         public readonly array $columns,
         public readonly string $primaryKey,
         public readonly array $indexes = [],
-        public readonly array $foreignKeys = []
+        public readonly array $foreignKeys = [],
+        /**
+         * A table in between two others is told apart by the pair it holds, so it has no key
+         * of its own to declare.
+         */
+        public readonly bool $hasOwnKey = true
     ) {
         //
     }
@@ -39,7 +44,8 @@ final class TableSchema
             $columns ?? $this->columns,
             $this->primaryKey,
             $indexes ?? $this->indexes,
-            $foreignKeys ?? $this->foreignKeys
+            $foreignKeys ?? $this->foreignKeys,
+            $this->hasOwnKey
         );
     }
 }
