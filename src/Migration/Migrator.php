@@ -27,9 +27,9 @@ use Quillstack\Orm\Schema\TableSchema;
  */
 class Migrator
 {
-    private readonly SchemaGrammar $grammar;
+    private ?SchemaGrammar $grammar;
 
-    private readonly Introspector $introspector;
+    private ?Introspector $introspector;
 
     public function __construct(
         private readonly Connection $connection,
@@ -37,8 +37,21 @@ class Migrator
         ?Introspector $introspector = null,
         private readonly SchemaBuilder $builder = new SchemaBuilder()
     ) {
-        $this->grammar = $grammar ?? self::grammarFor($connection);
-        $this->introspector = $introspector ?? self::introspectorFor($connection);
+        // Which one to use is known only once the database says what it is, and asking that
+        // opens the connection. Building a migrator must not: an application registering one
+        // and never migrating would connect on every request for nothing.
+        $this->grammar = $grammar;
+        $this->introspector = $introspector;
+    }
+
+    private function grammar(): SchemaGrammar
+    {
+        return $this->grammar ??= self::grammarFor($this->connection);
+    }
+
+    private function introspector(): Introspector
+    {
+        return $this->introspector ??= self::introspectorFor($this->connection);
     }
 
     /**
@@ -50,7 +63,7 @@ class Migrator
     {
         $plan = new Plan();
         $tables = $this->builder->for($entities);
-        $existing = $this->introspector->tables();
+        $existing = $this->introspector()->tables();
 
         foreach ($tables as $table) {
             $plan = in_array($table->name, $existing, true)
@@ -96,7 +109,7 @@ class Migrator
 
     private function planTable(Plan $plan, TableSchema $table): Plan
     {
-        $plan = $plan->with($this->grammar->createTable($table));
+        $plan = $plan->with($this->grammar()->createTable($table));
 
         foreach ($table->indexes as $index) {
             // The primary key is already an index; a second one on the same column is waste.
@@ -104,7 +117,7 @@ class Migrator
                 continue;
             }
 
-            $plan = $plan->with($this->grammar->createIndex($table->name, $index));
+            $plan = $plan->with($this->grammar()->createIndex($table->name, $index));
         }
 
         return $plan;
@@ -112,13 +125,13 @@ class Migrator
 
     private function planChanges(Plan $plan, TableSchema $table): Plan
     {
-        $columns = $this->introspector->columns($table->name);
-        $indexes = $this->introspector->indexes($table->name);
-        $keyed = $this->introspector->foreignKeyColumns($table->name);
+        $columns = $this->introspector()->columns($table->name);
+        $indexes = $this->introspector()->indexes($table->name);
+        $keyed = $this->introspector()->foreignKeyColumns($table->name);
 
         foreach ($table->columns as $column) {
             if (!in_array($column->name, $columns, true)) {
-                $plan = $plan->with($this->grammar->addColumn($table->name, $column));
+                $plan = $plan->with($this->grammar()->addColumn($table->name, $column));
             }
         }
 
@@ -127,7 +140,7 @@ class Migrator
                 continue;
             }
 
-            $plan = $plan->with($this->grammar->createIndex($table->name, $index));
+            $plan = $plan->with($this->grammar()->createIndex($table->name, $index));
         }
 
         foreach ($table->foreignKeys as $key) {
@@ -135,7 +148,7 @@ class Migrator
                 continue;
             }
 
-            $sql = $this->grammar->addForeignKey($table->name, $key);
+            $sql = $this->grammar()->addForeignKey($table->name, $key);
 
             $plan = $sql === null
                 ? $plan->warning(

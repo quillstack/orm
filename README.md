@@ -130,6 +130,10 @@ analysis needs.
 An entity built by hand has no result set behind it. Its relations say so rather than quietly
 answering that there is nothing there.
 
+The same row read twice is the same object, and that object's relations follow whichever set
+is being read now. An entity seen once on its own does not go on loading its relation one
+owner at a time when it turns up later among fifty.
+
 ## Writing
 
 ```php

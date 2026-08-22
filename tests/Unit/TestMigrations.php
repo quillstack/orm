@@ -192,4 +192,18 @@ class TestMigrations
         $this->assertBoolean->isTrue(str_contains($warnings, 'posts.user_id'));
         $this->assertBoolean->isTrue(str_contains($warnings, 'foreign key'));
     }
+
+    /**
+     * Building one must not open the connection. An application which registers a migrator
+     * and never migrates would otherwise connect on every request for nothing — which is the
+     * whole reason a connection opens when it is first asked and not before.
+     */
+    public function buildingOneDoesNotOpenTheDatabase()
+    {
+        $connection = $this->connection();
+
+        new Migrator($connection);
+
+        $this->assertBoolean->isFalse($connection->isOpen());
+    }
 }

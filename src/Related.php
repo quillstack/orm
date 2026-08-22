@@ -29,11 +29,26 @@ final class Related implements IteratorAggregate, Countable
      * it says, rather than quietly answering that there is nothing there.
      */
     public function __construct(
-        private readonly ?LoadContext $context = null,
+        private ?LoadContext $context = null,
         private readonly ?AssociationMetadata $association = null,
         private readonly mixed $ownerValue = null
     ) {
         //
+    }
+
+    /**
+     * Points this at another result set.
+     *
+     * The same row read twice is the same object, so an entity read once on its own and then
+     * again among fifty would otherwise keep the smaller set it arrived in — and load its
+     * relation for one owner rather than fifty. Whatever it was pointing at before does not
+     * matter: the larger set is the one worth asking in.
+     */
+    public function rebind(LoadContext $context): void
+    {
+        if ($this->association !== null) {
+            $this->context = $context;
+        }
     }
 
     /**

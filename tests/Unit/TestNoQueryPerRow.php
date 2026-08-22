@@ -147,4 +147,81 @@ class TestNoQueryPerRow
 
         $this->assertEqual->equal(0, $connection->queryCount() - $after);
     }
+
+    /**
+     * The one that got away.
+     *
+     * The same row read twice is the same object. An entity read once on its own kept the
+     * result set it arrived in, so reading fifty of them later handed back objects which each
+     * loaded their relation for one owner — ten users written and then listed was eleven
+     * queries, in the very feature meant to make that impossible. Relations now follow
+     * whichever set is being read.
+     */
+    public function anEntityAlreadyKnownJoinsTheSetItIsReadIn()
+    {
+        $orm = Blog::orm(users: 10, postsEach: 2);
+        $connection = $orm->connection();
+        $repository = $orm->repository(User::class);
+
+        // Read one at a time first, so every one of them is already known.
+        foreach (range(1, 10) as $id) {
+            $repository->find($id);
+        }
+
+        $before = $connection->queryCount();
+        $titles = [];
+
+        foreach ($repository->all() as $user) {
+            foreach ($user->posts as $post) {
+                $titles[] = $post->title;
+            }
+        }
+
+        $this->assertEqual->equal(20, count($titles));
+        $this->assertEqual->equal(2, $connection->queryCount() - $before);
+    }
+
+    /**
+     * And the same for entities which have just been written rather than read.
+     */
+    public function entitiesJustWrittenJoinTheSetToo()
+    {
+        $orm = Blog::orm(users: 0);
+        $connection = $orm->connection();
+        $users = $orm->repository(User::class);
+        $posts = $orm->repository(Post::class);
+
+        foreach (range(1, 10) as $i) {
+            $user = $users->save(new User(email: "user{$i}@example.com"));
+            $posts->save(new Post(userId: $user->id, title: "First of {$i}"));
+            $posts->save(new Post(userId: $user->id, title: "Second of {$i}"));
+        }
+
+        $before = $connection->queryCount();
+        $titles = [];
+
+        foreach ($users->all() as $user) {
+            foreach ($user->posts as $post) {
+                $titles[] = $post->title;
+            }
+        }
+
+        $this->assertEqual->equal(20, count($titles));
+        $this->assertEqual->equal(2, $connection->queryCount() - $before);
+    }
+
+    /**
+     * Writing a row is one statement. It used to be two: the row was read back to get an
+     * entity whose relations worked, which everything a row holds had only just been said.
+     */
+    public function writingSomethingIsOneStatement()
+    {
+        $orm = Blog::orm(users: 0);
+        $connection = $orm->connection();
+
+        $before = $connection->queryCount();
+        $orm->repository(User::class)->save(new User(email: 'ada@example.com'));
+
+        $this->assertEqual->equal(1, $connection->queryCount() - $before);
+    }
 }

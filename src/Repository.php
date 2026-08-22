@@ -128,7 +128,7 @@ class Repository
             $this->query()->where($this->metadata->id->column, '=', $id)->update($values);
         }
 
-        return $id === null ? $entity : $this->managed($id, $entity);
+        return $id === null ? $entity : $this->managed($id, $values, $entity);
     }
 
     /**
@@ -136,20 +136,29 @@ class Repository
      *
      * An entity built by hand has no result set behind it, so its relations have nothing to
      * load from. Putting that object into the identity map would hand it back on the next
-     * read with relations that cannot answer, so it is read once instead and the managed one
-     * given back. Where the entity is already the managed one, there is nothing to do.
+     * read with relations that cannot answer, so a managed one is made from what was just
+     * written — no second query, because everything a row holds has only now been said.
+     * Where the entity is already the managed one, there is nothing to do.
      *
+     * @param array<string, mixed> $values
      * @param T $entity
      *
      * @return T
      */
-    private function managed(int|string $id, object $entity): object
+    private function managed(int|string $id, array $values, object $entity): object
     {
         if ($this->orm->identityMap()->get($this->class, $id) === $entity) {
             return $entity;
         }
 
-        return $this->find($id) ?? $entity;
+        /** @var T $managed */
+        $managed = $this->orm->hydrate(
+            $this->metadata,
+            $values + [$this->metadata->id->column => $id],
+            new LoadContext($this->orm)
+        );
+
+        return $managed;
     }
 
     /**

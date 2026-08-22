@@ -78,6 +78,11 @@ class Orm
             $known = $this->identityMap->get($metadata->class, $id);
 
             if ($known !== null) {
+                // The same object, in a new set. Its relations belong to whichever set is
+                // being read now, or an entity seen once on its own would go on loading them
+                // one owner at a time.
+                $this->bindRelations($metadata, $known, $row, $context);
+
                 return $known;
             }
         }
@@ -89,10 +94,7 @@ class Orm
         }
 
         foreach ($metadata->associations as $association) {
-            $ownerValue = $association->kind === AssociationMetadata::BELONGS_TO
-                ? ($row[$association->ownerColumn] ?? null)
-                : ($row[$metadata->id->column] ?? null);
-
+            $ownerValue = $this->ownerValue($metadata, $association, $row);
             $context->expect($association, $ownerValue);
 
             $values[$association->property] = $association->isToOne()
@@ -107,6 +109,47 @@ class Orm
         }
 
         return $entity;
+    }
+
+    /**
+     * Points an entity's relations at a result set, and says it is waiting on them.
+     *
+     * @param array<string, mixed> $row
+     */
+    public function bindRelations(
+        EntityMetadata $metadata,
+        object $entity,
+        array $row,
+        LoadContext $context
+    ): void {
+        /** @var array<string, mixed> $values */
+        $values = get_object_vars($entity);
+
+        foreach ($metadata->associations as $association) {
+            $ownerValue = $this->ownerValue($metadata, $association, $row);
+            $context->expect($association, $ownerValue);
+
+            $handle = $values[$association->property] ?? null;
+
+            if ($handle instanceof Related || $handle instanceof Reference) {
+                $handle->rebind($context);
+            }
+        }
+    }
+
+    /**
+     * What this entity matches on for one relation: the column pointing away, or its own id.
+     *
+     * @param array<string, mixed> $row
+     */
+    private function ownerValue(
+        EntityMetadata $metadata,
+        AssociationMetadata $association,
+        array $row
+    ): mixed {
+        return $association->kind === AssociationMetadata::BELONGS_TO
+            ? ($row[$association->ownerColumn] ?? null)
+            : ($row[$metadata->id->column] ?? null);
     }
 
     /**
