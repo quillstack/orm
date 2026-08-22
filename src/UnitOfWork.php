@@ -222,10 +222,34 @@ class UnitOfWork
 
         $property = $metadata->id->property;
 
+        // Everything written together shares one result set, the same as everything read
+        // together: an entity just written has a row behind it now, and its relations can
+        // answer — for all of them at once.
+        $context = new LoadContext($this->orm);
+
         foreach (array_values($entities) as $index => $entity) {
-            $entity->{$property} = Caster::to($metadata->id->type, $first + $index);
-            $this->orm->identityMap()->put($metadata->class, $first + $index, $entity);
+            $id = $first + $index;
+            $entity->{$property} = Caster::to($metadata->id->type, $id);
+            $this->orm->identityMap()->put($metadata->class, $id, $entity);
+            $this->orm->bindRelations($metadata, $entity, $this->rowOf($metadata, $entity), $context);
         }
+    }
+
+    /**
+     * What an entity holds, keyed the way a row is, for working out what its relations match
+     * on without going back to the database for something already known.
+     *
+     * @return array<string, mixed>
+     */
+    private function rowOf(EntityMetadata $metadata, object $entity): array
+    {
+        $row = [];
+
+        foreach ($metadata->columns as $column) {
+            $row[$column->column] = $metadata->read($entity, $column->column);
+        }
+
+        return $row;
     }
 
     /**

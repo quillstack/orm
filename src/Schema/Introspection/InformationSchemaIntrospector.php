@@ -8,17 +8,16 @@ use Quillstack\Db\Connection;
 use Quillstack\Orm\Schema\Introspector;
 
 /**
- * MySQL and PostgreSQL both describe themselves through `information_schema`, so both are
- * read the same way.
+ * What MySQL and PostgreSQL describe the same way, which is tables, columns and keys.
  *
- * Written against the standard rather than against a running server: the suite here has
- * SQLite and nothing else, so this is the part of the package a real database has to confirm.
+ * Indexes they do not: an index which is not a constraint appears in neither's
+ * `table_constraints`, so each says that in its own place and each subclass answers it.
  */
-class InformationSchemaIntrospector implements Introspector
+abstract class InformationSchemaIntrospector implements Introspector
 {
     public function __construct(
-        private readonly Connection $connection,
-        private readonly string $schema = 'public'
+        protected readonly Connection $connection,
+        protected readonly string $schema
     ) {
         //
     }
@@ -49,18 +48,6 @@ class InformationSchemaIntrospector implements Introspector
     /**
      * {@inheritDoc}
      */
-    public function indexes(string $table): array
-    {
-        return $this->names($this->connection->select(
-            'SELECT constraint_name AS name FROM information_schema.table_constraints
-             WHERE table_schema = :schema AND table_name = :table',
-            ['schema' => $this->schema, 'table' => $table]
-        ), 'name');
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function foreignKeyColumns(string $table): array
     {
         return $this->names($this->connection->select(
@@ -77,12 +64,12 @@ class InformationSchemaIntrospector implements Introspector
      *
      * @return string[]
      */
-    private function names(array $rows, string $key): array
+    protected function names(array $rows, string $key): array
     {
         $names = [];
 
         foreach ($rows as $row) {
-            // MySQL upper-cases these, PostgreSQL does not.
+            // MySQL upper-cases these in some configurations, PostgreSQL does not.
             $value = $row[$key] ?? $row[strtoupper($key)] ?? null;
 
             if (is_scalar($value)) {

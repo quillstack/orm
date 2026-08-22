@@ -8,7 +8,8 @@ use Quillstack\Db\Connection;
 use Quillstack\Orm\Schema\Grammars\MySqlGrammar;
 use Quillstack\Orm\Schema\Grammars\PostgresGrammar;
 use Quillstack\Orm\Schema\Grammars\SqliteGrammar;
-use Quillstack\Orm\Schema\Introspection\InformationSchemaIntrospector;
+use Quillstack\Orm\Schema\Introspection\MySqlIntrospector;
+use Quillstack\Orm\Schema\Introspection\PostgresIntrospector;
 use Quillstack\Orm\Schema\Introspection\SqliteIntrospector;
 use Quillstack\Orm\Schema\Introspector;
 use Quillstack\Orm\Schema\SchemaBuilder;
@@ -71,6 +72,13 @@ class Migrator
                 : $this->planTable($plan, $table);
         }
 
+        if (!$plan->isEmpty() && !$this->connection->dialect()->supportsTransactionalSchema()) {
+            $plan = $plan->warning(
+                'This database commits each schema change as it happens, so a failure part '
+                . 'way through leaves what came before it done'
+            );
+        }
+
         return $plan;
     }
 
@@ -85,13 +93,25 @@ class Migrator
             return 0;
         }
 
-        return $this->connection->transaction(function (Connection $connection) use ($plan): int {
-            foreach ($plan->statements as $statement) {
-                $connection->execute($statement);
-            }
+        // Where a schema change can be undone, all of it happens or none of it does. Where
+        // it cannot — MySQL commits what is open the moment a table is created — wrapping it
+        // would be a transaction in name only, and pretending is worse than saying so.
+        if (!$this->connection->dialect()->supportsTransactionalSchema()) {
+            return $this->runAll($this->connection, $plan);
+        }
 
-            return count($plan->statements);
-        });
+        return $this->connection->transaction(
+            fn (Connection $connection): int => $this->runAll($connection, $plan)
+        );
+    }
+
+    private function runAll(Connection $connection, Plan $plan): int
+    {
+        foreach ($plan->statements as $statement) {
+            $connection->execute($statement);
+        }
+
+        return count($plan->statements);
     }
 
     /**
@@ -171,6 +191,18 @@ class Migrator
         return $plan;
     }
 
+    /**
+     * MySQL calls the schema the database, and which one is in use is something only the
+     * connection knows — the data source name is not the migrator's to read.
+     */
+    private static function databaseName(Connection $connection): string
+    {
+        $row = $connection->selectOne('SELECT DATABASE() AS name');
+        $name = $row['name'] ?? '';
+
+        return is_scalar($name) ? (string) $name : '';
+    }
+
     private static function grammarFor(Connection $connection): SchemaGrammar
     {
         $dialect = $connection->dialect();
@@ -185,9 +217,9 @@ class Migrator
     private static function introspectorFor(Connection $connection): Introspector
     {
         return match ($connection->dialect()->name()) {
-            'sqlite' => new SqliteIntrospector($connection),
-            'pgsql' => new InformationSchemaIntrospector($connection),
-            default => new InformationSchemaIntrospector($connection, ''),
+            'pgsql' => new PostgresIntrospector($connection),
+            'mysql' => new MySqlIntrospector($connection, self::databaseName($connection)),
+            default => new SqliteIntrospector($connection),
         };
     }
 }

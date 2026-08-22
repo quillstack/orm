@@ -1,0 +1,26 @@
+# The databases the schema tests want. SQLite needs nothing; these two do.
+#
+#   docker compose up -d
+#   QUILLSTACK_PGSQL_DSN='pgsql:host=127.0.0.1;port=55432;dbname=quillstack' \
+#   QUILLSTACK_MYSQL_DSN='mysql:host=127.0.0.1;port=53306;dbname=quillstack' \
+#   QUILLSTACK_DB_USER=quill QUILLSTACK_DB_PASSWORD=secret composer test
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: quill
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: quillstack
+    ports:
+      - "55432:5432"
+
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: quillstack
+      MYSQL_USER: quill
+      MYSQL_PASSWORD: secret
+    ports:
+      - "53306:3306"

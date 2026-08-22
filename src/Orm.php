@@ -171,7 +171,7 @@ class Orm
             $handle = $values[$association->property] ?? null;
 
             if ($handle instanceof Related || $handle instanceof Reference) {
-                $handle->rebind($context);
+                $handle->rebind($context, $association, $ownerValue);
             }
         }
     }

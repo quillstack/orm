@@ -25,8 +25,8 @@ final class Reference
 {
     public function __construct(
         private ?LoadContext $context = null,
-        private readonly ?AssociationMetadata $association = null,
-        private readonly mixed $ownerValue = null
+        private ?AssociationMetadata $association = null,
+        private mixed $ownerValue = null
     ) {
         //
     }
@@ -38,12 +38,15 @@ final class Reference
      * again among fifty would otherwise keep the smaller set it arrived in — and load its
      * relation for one owner rather than fifty. Whatever it was pointing at before does not
      * matter: the larger set is the one worth asking in.
+     *
+     * This is also how an entity built by hand becomes one whose relations answer, once it
+     * has been written and therefore has a row behind it.
      */
-    public function rebind(LoadContext $context): void
+    public function rebind(LoadContext $context, AssociationMetadata $association, mixed $ownerValue): void
     {
-        if ($this->association !== null) {
-            $this->context = $context;
-        }
+        $this->context = $context;
+        $this->association = $association;
+        $this->ownerValue = $ownerValue;
     }
 
     /**

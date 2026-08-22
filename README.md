@@ -233,9 +233,20 @@ composer stan
 The suite runs against a real SQLite database in memory, and counts the statements: the claim
 above is a test, not a promise.
 
-MySQL and PostgreSQL have grammars of their own, checked by reading the SQL they write. What
-they cannot be checked on here is reading an existing schema back, which goes through
-`information_schema` — that part still wants a real server to confirm it.
+MySQL and PostgreSQL are tested against real servers, because that is where databases stop
+agreeing with each other — reading an existing schema back, what an index is called, whether
+a schema change can be undone at all. Bring them up and the suite picks them up:
+
+```shell
+docker compose up -d
+
+QUILLSTACK_PGSQL_DSN='pgsql:host=127.0.0.1;port=55432;dbname=quillstack' \
+QUILLSTACK_MYSQL_DSN='mysql:host=127.0.0.1;port=53306;dbname=quillstack' \
+QUILLSTACK_DB_USER=quill QUILLSTACK_DB_PASSWORD=secret composer test
+```
+
+Without them those tests do not run at all, rather than passing quietly: a suite which never
+touched MySQL should not look like one that did. CI runs all three.
 
 ## License
 
