@@ -10,8 +10,8 @@ use Quillstack\Orm\Attributes\Column;
 use Quillstack\Orm\Attributes\HasMany;
 use Quillstack\Orm\Attributes\Id;
 use Quillstack\Orm\Attributes\Table;
-use Quillstack\Orm\Related;
 use Quillstack\Orm\Reference;
+use Quillstack\Orm\Related;
 
 #[Table('posts')]
 final class Post

@@ -4,11 +4,6 @@ declare(strict_types=1);
 
 namespace Quillstack\Orm\Metadata;
 
-use ReflectionAttribute;
-use ReflectionClass;
-use ReflectionNamedType;
-use ReflectionParameter;
-use ReflectionProperty;
 use Quillstack\Orm\Attributes\BelongsTo;
 use Quillstack\Orm\Attributes\BelongsToMany;
 use Quillstack\Orm\Attributes\Column;
@@ -17,6 +12,11 @@ use Quillstack\Orm\Attributes\HasOne;
 use Quillstack\Orm\Attributes\Id;
 use Quillstack\Orm\Attributes\Table;
 use Quillstack\Orm\Exceptions\NotAnEntityException;
+use ReflectionAttribute;
+use ReflectionClass;
+use ReflectionNamedType;
+use ReflectionParameter;
+use ReflectionProperty;
 
 /**
  * Reads an entity once and remembers what it found. Reflection is not cheap enough to do on

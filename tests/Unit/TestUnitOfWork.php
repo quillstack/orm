@@ -12,7 +12,6 @@ use Quillstack\Orm\Tests\Mocks\Entities\Profile;
 use Quillstack\Orm\Tests\Mocks\Entities\User;
 use Quillstack\UnitTests\AssertEqual;
 use Quillstack\UnitTests\Types\AssertBoolean;
-use RuntimeException;
 
 class TestUnitOfWork
 {

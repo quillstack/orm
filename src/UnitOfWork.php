@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Quillstack\Orm;
 
-use Quillstack\Db\Connection;
 use Quillstack\Orm\Casting\Caster;
 use Quillstack\Orm\Metadata\AssociationMetadata;
 use Quillstack\Orm\Metadata\EntityMetadata;

@@ -6,14 +6,14 @@ namespace Quillstack\Orm\Schema;
 
 use BackedEnum;
 use DateTimeInterface;
-use ReflectionClass;
-use ReflectionEnum;
-use ReflectionNamedType;
 use Quillstack\Orm\Attributes\Column;
 use Quillstack\Orm\Metadata\AssociationMetadata;
 use Quillstack\Orm\Metadata\ColumnMetadata;
 use Quillstack\Orm\Metadata\EntityMetadata;
 use Quillstack\Orm\Metadata\MetadataFactory;
+use ReflectionClass;
+use ReflectionEnum;
+use ReflectionNamedType;
 
 /**
  * Works out what the database should look like from what the entities say.
