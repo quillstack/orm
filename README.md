@@ -129,6 +129,55 @@ Values survive the round trip whatever the driver hands back: `int`, `float`, `b
 `DateTimeImmutable` and backed enums are all brought to the type the property declares. The
 same row read twice is the same object, so `===` answers what a person means by it.
 
+## The schema comes from the entities
+
+There are no migration files to write and none to keep in order. The entities are the
+description; what is missing is worked out by comparing them against what is there.
+
+```php
+$migrator = new Migrator($connection);
+
+$plan = $migrator->plan([User::class, Post::class, Comment::class, Profile::class]);
+$migrator->apply($plan);
+```
+
+**Nobody writes an index, and nobody writes a foreign key.** A relation is a declaration that
+one column holds another table's id — which is all the information needed to index it and to
+constrain it. Both are added, because a relation without an index is a table scan on every
+lookup, and that is exactly the kind of thing nobody remembers until it is slow.
+
+```sql
+CREATE TABLE "posts" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "user_id" INTEGER NULL,
+  "title" TEXT NOT NULL,
+  FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE
+)
+CREATE INDEX "posts_user_id_index" ON "posts" ("user_id")
+```
+
+A column can ask for more: `#[Column(length: 40, unique: true)]`, `#[Column(index: true)]`,
+`#[Column(length: 0)]` for text with no limit. Everything else follows the property's own
+type, nullability included.
+
+Running it again finds nothing to do, which is what makes it safe on every deploy.
+
+### Nothing is ever removed
+
+A column the entities no longer mention is reported and left alone:
+
+```
+users.forgotten is in the database and not in the entity — left alone, because a renamed
+property looks exactly like a deleted one
+```
+
+The difference between those two matters rather a lot when the answer is data. The same goes
+for anything a database cannot do: SQLite will not add a foreign key to a table which already
+exists, and the plan says so rather than running something which quietly does nothing.
+
+`plan()` and `apply()` are two steps because a migration is worth looking at before it
+happens. `migrate()` does both where that is what is wanted.
+
 ## Unit tests
 
 ```shell
@@ -139,6 +188,10 @@ composer stan
 
 The suite runs against a real SQLite database in memory, and counts the statements: the claim
 above is a test, not a promise.
+
+MySQL and PostgreSQL have grammars of their own, checked by reading the SQL they write. What
+they cannot be checked on here is reading an existing schema back, which goes through
+`information_schema` — that part still wants a real server to confirm it.
 
 ## License
 

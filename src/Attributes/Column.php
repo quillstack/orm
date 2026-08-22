@@ -13,8 +13,18 @@ use Attribute;
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_PARAMETER)]
 final class Column
 {
-    public function __construct(public readonly ?string $name = null)
-    {
+    /**
+     * @param ?int $length how much room a text column needs; without one it takes the size a
+     *                      short piece of text usually gets, and zero means no limit at all
+     * @param bool $unique whether no two rows may share this value, which also puts an index
+     *                     on the column
+     */
+    public function __construct(
+        public readonly ?string $name = null,
+        public readonly ?int $length = null,
+        public readonly bool $unique = false,
+        public readonly bool $index = false
+    ) {
         //
     }
 }

@@ -112,28 +112,44 @@ class Repository
         $id = $this->metadata->idOf($entity);
         $values = $this->valuesOf($entity);
 
+        unset($values[$this->metadata->id->column]);
+
         if ($id === null) {
-            unset($values[$this->metadata->id->column]);
             $this->query()->insert($values);
-            $newId = $this->orm->connection()->lastInsertId();
-            $property = $this->metadata->id->property;
 
-            // The database decides the id, so the entity is told what it was given.
-            $entity->{$property} = Caster::to($this->metadata->id->type, $newId);
-            $newId = $this->metadata->idOf($entity);
+            // The database decides the id, so the entity is told what it was given — the
+            // caller is holding this object and will want to know.
+            $entity->{$this->metadata->id->property} = Caster::to(
+                $this->metadata->id->type,
+                $this->orm->connection()->lastInsertId()
+            );
+            $id = $this->metadata->idOf($entity);
+        } else {
+            $this->query()->where($this->metadata->id->column, '=', $id)->update($values);
+        }
 
-            if ($newId !== null) {
-                $this->orm->identityMap()->put($this->class, $newId, $entity);
-            }
+        return $id === null ? $entity : $this->managed($id, $entity);
+    }
 
+    /**
+     * The entity as the ORM knows it.
+     *
+     * An entity built by hand has no result set behind it, so its relations have nothing to
+     * load from. Putting that object into the identity map would hand it back on the next
+     * read with relations that cannot answer, so it is read once instead and the managed one
+     * given back. Where the entity is already the managed one, there is nothing to do.
+     *
+     * @param T $entity
+     *
+     * @return T
+     */
+    private function managed(int|string $id, object $entity): object
+    {
+        if ($this->orm->identityMap()->get($this->class, $id) === $entity) {
             return $entity;
         }
 
-        unset($values[$this->metadata->id->column]);
-        $this->query()->where($this->metadata->id->column, '=', $id)->update($values);
-        $this->orm->identityMap()->put($this->class, $id, $entity);
-
-        return $entity;
+        return $this->find($id) ?? $entity;
     }
 
     /**
