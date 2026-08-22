@@ -17,7 +17,12 @@ use Traversable;
  * Reading one of these loads it for every entity read alongside this one, in a single query.
  * There is no `with()` to remember and none to forget: asking is what loads the batch.
  *
- * @template T of object
+ * The type has no bound on purpose. An entity gives its relations an empty one as a default,
+ * and `new Related()` cannot say what it will hold — with a bound, that default is
+ * `Related<object>` and no entity declaring `Related<Post>` passes static analysis, which
+ * would make the recommended way of writing an entity the one that does not check.
+ *
+ * @template T
  *
  * @implements IteratorAggregate<int, T>
  */
@@ -69,9 +74,13 @@ final class Related implements IteratorAggregate, Countable
     }
 
     /**
+     * The native type says `mixed` where the docblock says what it really is. Static
+     * analysis reads the docblock and knows exactly; PHP checks nothing, which is the price
+     * of a relation being able to start out empty.
+     *
      * @return ?T
      */
-    public function first(): ?object
+    public function first(): mixed
     {
         return $this->all()[0] ?? null;
     }

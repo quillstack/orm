@@ -14,7 +14,12 @@ use Quillstack\Orm\Metadata\AssociationMetadata;
  * property access that quietly does that is how an application ends up with a thousand
  * queries nobody wrote. Here it goes once for everybody read alongside.
  *
- * @template T of object
+ * The type has no bound on purpose. An entity gives its relations an empty one as a default,
+ * and `new Related()` cannot say what it will hold — with a bound, that default is
+ * `Related<object>` and no entity declaring `Related<Post>` passes static analysis, which
+ * would make the recommended way of writing an entity the one that does not check.
+ *
+ * @template T
  */
 final class Reference
 {
@@ -42,9 +47,13 @@ final class Reference
     }
 
     /**
+     * The native type says `mixed` where the docblock says what it really is. Static
+     * analysis reads the docblock and knows exactly; PHP checks nothing, which is the price
+     * of a relation being able to start out empty.
+     *
      * @return ?T
      */
-    public function get(): ?object
+    public function get(): mixed
     {
         if ($this->context === null || $this->association === null) {
             throw new EntityNotManagedException(
