@@ -1,5 +1,12 @@
 # Quillstack Orm
 
+[![Tests](https://github.com/quillstack/orm/actions/workflows/tests.yml/badge.svg)](https://github.com/quillstack/orm/actions/workflows/tests.yml)
+[![Latest Version](https://img.shields.io/packagist/v/quillstack/orm.svg)](https://packagist.org/packages/quillstack/orm)
+[![Downloads](https://img.shields.io/packagist/dt/quillstack/orm.svg)](https://packagist.org/packages/quillstack/orm)
+[![PHP Version](https://img.shields.io/packagist/php-v/quillstack/orm)](https://packagist.org/packages/quillstack/orm)
+[![StyleCI](https://github.styleci.io/repos/1343192548/shield?branch=main)](https://github.styleci.io/repos/1343192548?branch=main)
+[![License](https://img.shields.io/packagist/l/quillstack/orm)](https://github.com/quillstack/orm/blob/main/LICENSE)
+
 An ORM which cannot be asked one query per row.
 
 Touching one entity's relation loads it for every entity read beside it, in a single
