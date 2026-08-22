@@ -143,6 +143,29 @@ $users->save($user);                                        // updated
 $users->delete($user);
 ```
 
+### Writing many
+
+Saving one at a time is one statement each, and a thousand of them is a thousand round trips
+to a database which would have taken them together:
+
+```php
+foreach ($rows as $row) {
+    $orm->persist(new User(email: $row['email']));
+}
+
+$orm->flush();
+```
+
+A thousand users is **three statements** — as many as the values need, all in one
+transaction, and each entity told the id its row was given. A failure half way through leaves
+nothing behind.
+
+Entities are written in the order their relations need, so queueing a post before the user it
+belongs to is not a problem: whatever is pointed at goes first, and removals go the other way
+round. Something already written is updated rather than written again.
+
+`$orm->remove($entity)` queues a removal; ten of them are one `DELETE`.
+
 Values survive the round trip whatever the driver hands back: `int`, `float`, `bool`, `string`,
 `DateTimeImmutable` and backed enums are all brought to the type the property declares. The
 same row read twice is the same object, so `===` answers what a person means by it.

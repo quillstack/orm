@@ -21,6 +21,8 @@ class Orm
 
     private readonly IdentityMap $identityMap;
 
+    private ?UnitOfWork $unitOfWork = null;
+
     public function __construct(
         private readonly Connection $connection,
         ?MetadataFactory $metadata = null,
@@ -47,6 +49,43 @@ class Orm
     public function connection(): Connection
     {
         return $this->connection;
+    }
+
+    /**
+     * Work waiting to be written. Queue what there is and write it in one go, rather than a
+     * round trip for every entity.
+     */
+    public function unitOfWork(): UnitOfWork
+    {
+        return $this->unitOfWork ??= new UnitOfWork($this);
+    }
+
+    /**
+     * Queues an entity to be written when the work is flushed.
+     */
+    public function persist(object $entity): self
+    {
+        $this->unitOfWork()->persist($entity);
+
+        return $this;
+    }
+
+    /**
+     * Queues an entity to be removed when the work is flushed.
+     */
+    public function remove(object $entity): self
+    {
+        $this->unitOfWork()->remove($entity);
+
+        return $this;
+    }
+
+    /**
+     * Writes everything queued, or nothing at all.
+     */
+    public function flush(): int
+    {
+        return $this->unitOfWork()->flush();
     }
 
     /**

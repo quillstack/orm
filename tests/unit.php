@@ -9,5 +9,6 @@ return [
     \Quillstack\Orm\Tests\Unit\TestMigrations::class,
     \Quillstack\Orm\Tests\Unit\TestNoQueryPerRow::class,
     \Quillstack\Orm\Tests\Unit\TestRepository::class,
+    \Quillstack\Orm\Tests\Unit\TestUnitOfWork::class,
     \Quillstack\Orm\Tests\Unit\TestValues::class,
 ];
