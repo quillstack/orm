@@ -19,7 +19,7 @@
     ],
     "require": {
         "php": "^8.1",
-        "quillstack/db": "^0.6"
+        "quillstack/db": "^0.6.1"
     },
     "require-dev": {
         "ext-pdo_sqlite": "*",
