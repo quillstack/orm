@@ -5,6 +5,7 @@
 [![Downloads](https://img.shields.io/packagist/dt/quillstack/orm.svg)](https://packagist.org/packages/quillstack/orm)
 [![PHP Version](https://img.shields.io/packagist/php-v/quillstack/orm)](https://packagist.org/packages/quillstack/orm)
 [![StyleCI](https://github.styleci.io/repos/1343192548/shield?branch=main)](https://github.styleci.io/repos/1343192548?branch=main)
+[![CodeFactor](https://www.codefactor.io/repository/github/quillstack/orm/badge)](https://www.codefactor.io/repository/github/quillstack/orm)
 [![License](https://img.shields.io/packagist/l/quillstack/orm)](https://github.com/quillstack/orm/blob/main/LICENSE)
 
 An ORM which cannot be asked one query per row.
