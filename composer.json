@@ -7,7 +7,8 @@
         "orm",
         "entity",
         "database",
-        "n+1",
+        "n-plus-one",
+        "eager-loading",
         "php8"
     ],
     "homepage": "https://quillstack.org/orm",
