@@ -18,18 +18,36 @@ An ORM which cannot be asked one query per row.
 Touching one entity's relation loads it for every entity read beside it, in a single
 `WHERE ... IN (...)`. There is no `with()` to remember and none to forget.
 
+## Why this exists
+
+Every ORM can produce an N+1 query, and every one of them tells you not to. Doctrine has fetch
+joins, Eloquent has `with()`, Cycle has `load()` — each an opt-in you have to remember on the day
+you write the loop, and each silent when you forget. **Loading two hundred users and their posts
+costs 201 queries in Doctrine and 201 in Eloquent** unless somebody said otherwise; here it costs
+two, and there is nothing to say.
+
+That is the whole idea: a relation is loaded for the result set it belongs to, not for the row
+you happened to ask first. It is not an optimisation you enable — it is the only way this can
+load a relation at all, which is why forgetting is not available.
+
+What it costs is everything a data mapper does that this does not: no unit of work, no change
+tracking, no lazy proxies, no query language of its own. Entities are plain typed properties, and
+what you read is what the database had.
+
 ## Requirements
 
 - PHP 8.1 or newer
 - [quillstack/db](https://github.com/quillstack/db)
 
-## Installing
+## Installation
 
 ```shell
 composer require quillstack/orm
 ```
 
-## An entity
+## Usage
+
+### An entity
 
 Plain typed properties, mapped with attributes. No magic reads, so static analysis sees every
 field an entity has.
@@ -61,7 +79,7 @@ A property with no column of its own takes the name a column usually has: `creat
 
 Entities work written the other way round too, as plain public properties with no constructor.
 
-## Reading
+### Reading
 
 ```php
 $orm = new Orm($connection);
@@ -76,7 +94,7 @@ $users->get($users->query()->where('active', '=', true)->orderBy('email'));
 The query is [quillstack/db](https://github.com/quillstack/db)'s, so everything it does is
 available and every value is bound.
 
-## One query per row is impossible
+### One query per row is impossible
 
 Everything read together shares the result set it came from. A relation is not loaded for the
 entity whose property was touched — it is loaded for all of them, and handed to all of them:
@@ -120,7 +138,7 @@ SELECT "post_id", "tag_id" FROM "post_tag" WHERE "post_id" IN (…)
 SELECT * FROM "tags" WHERE "id" IN (…)
 ```
 
-## Relations are asked, not read
+### Relations are asked, not read
 
 `$user->posts` is a `Related`, `$post->user` a `Reference`:
 
@@ -147,7 +165,7 @@ The same row read twice is the same object, and that object's relations follow w
 is being read now. An entity seen once on its own does not go on loading its relation one
 owner at a time when it turns up later among fifty.
 
-## Writing
+### Writing
 
 ```php
 $user = $users->save(new User(email: 'ada@example.com'));   // inserted, and given its id
@@ -213,7 +231,7 @@ count where there is nothing to read. The entities on a page share a result set,
 relations still load for the whole page at once: a filtered, sorted, paged list with its
 relations walked is three queries.
 
-## The schema comes from the entities
+### The schema comes from the entities
 
 There are no migration files to write and none to keep in order. The entities are the
 description; what is missing is worked out by comparing them against what is there.
@@ -265,7 +283,53 @@ exists, and the plan says so rather than running something which quietly does no
 `plan()` and `apply()` are two steps because a migration is worth looking at before it
 happens. `migrate()` does both where that is what is wanted.
 
-## Unit tests
+## Benchmark
+
+Two hundred users, each with five posts — a thousand rows in the relation — read back with every
+post visited. SQLite, so the database is the same for all of them and nothing is on a network.
+Measured with [quillstack/benchmark](https://github.com/quillstack/benchmark); runs are
+interleaved and unconcurrent, each figure is the median of five, and PHP is 8.5.7.
+
+| | Version |
+| --- | --- |
+| quillstack/orm | v0.6.4 |
+| doctrine/orm | 3.6.8 |
+| illuminate/database (Eloquent) | v11.51.0 |
+
+**The queries each one runs:**
+
+| | Queries |
+| --- | --- |
+| **quillstack/orm** | **2** |
+| Eloquent, written the way it reads naturally | 201 |
+| Eloquent, after adding `with('posts')` | 2 |
+| Doctrine, written the way it reads naturally | 201 |
+| Doctrine, after adding a fetch join | 1 |
+
+Doctrine's single query is better than two, and it is available to anybody who remembers to
+write it. **The 201s are what both of them do when nobody does.**
+
+**And what that costs:**
+
+| | Time | Relative |
+| --- | --- | --- |
+| **quillstack/orm** | **3.72 ms** | — |
+| Eloquent with `with('posts')` | 13.58 ms | 3.7× |
+| Eloquent naturally | 20.74 ms | 5.6× |
+| Doctrine with a fetch join | 25.13 ms | 6.8× |
+| Doctrine naturally | 27.46 ms | 7.4× |
+
+**What the numbers do not say**, and it is a great deal: Doctrine is a full data mapper. It has
+a unit of work, an identity map, change tracking, lazy proxies, DQL, a migration tool and
+support for databases this package has never heard of. Eloquent has scopes, events,
+polymorphic relations, soft deletes and an ecosystem. A fifth of the time is what you get for
+having none of that.
+
+If your application needs a unit of work, use Doctrine — it is very good, and this is not a
+replacement for it. If what your application needs is to read rows and write them back without
+ever thinking about N+1, that is what this is.
+
+## Tests
 
 ```shell
 composer test
@@ -291,6 +355,16 @@ QUILLSTACK_DB_USER=quill QUILLSTACK_DB_PASSWORD=secret composer test
 Without them those tests do not run at all, rather than passing quietly: a suite which never
 touched MySQL should not look like one that did. CI runs all three.
 
+## The rest of Quillstack
+
+This is one component of [Quillstack](https://github.com/quillstack), a PHP framework which is
+as simple to use as it is strict about what it does.
+
+- [quillstack/query-builder](https://github.com/quillstack/query-builder) — the queries underneath
+- [quillstack/db](https://github.com/quillstack/db) — the connection underneath that
+- [quillstack/serializer](https://github.com/quillstack/serializer) — what decides which fields leave
+- [quillstack/framework](https://github.com/quillstack/framework) — where entities are wired in
+
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT — see [LICENSE](https://github.com/quillstack/orm/blob/main/LICENSE).
