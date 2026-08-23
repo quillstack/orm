@@ -11,7 +11,7 @@
         "eager-loading",
         "php8"
     ],
-    "homepage": "https://quillstack.org/orm",
+    "homepage": "https://quillstack.org/packages/orm",
     "authors": [
         {
             "name": "Radek Ziemniewicz",
