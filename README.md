@@ -6,6 +6,11 @@
 [![PHP Version](https://img.shields.io/packagist/php-v/quillstack/orm)](https://packagist.org/packages/quillstack/orm)
 [![StyleCI](https://github.styleci.io/repos/1343192548/shield?branch=main)](https://github.styleci.io/repos/1343192548?branch=main)
 [![CodeFactor](https://www.codefactor.io/repository/github/quillstack/orm/badge)](https://www.codefactor.io/repository/github/quillstack/orm)
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=quillstack_orm&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=quillstack_orm)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=quillstack_orm&metric=coverage)](https://sonarcloud.io/summary/new_code?id=quillstack_orm)
+[![Maintainability](https://sonarcloud.io/api/project_badges/measure?project=quillstack_orm&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=quillstack_orm)
+[![Reliability](https://sonarcloud.io/api/project_badges/measure?project=quillstack_orm&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=quillstack_orm)
+[![Security](https://sonarcloud.io/api/project_badges/measure?project=quillstack_orm&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=quillstack_orm)
 [![License](https://img.shields.io/packagist/l/quillstack/orm)](https://github.com/quillstack/orm/blob/main/LICENSE)
 
 An ORM which cannot be asked one query per row.
