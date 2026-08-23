@@ -360,8 +360,7 @@ touched MySQL should not look like one that did. CI runs all three.
 This is one component of [Quillstack](https://github.com/quillstack), a PHP framework which is
 as simple to use as it is strict about what it does.
 
-- [quillstack/query-builder](https://github.com/quillstack/query-builder) — the queries underneath
-- [quillstack/db](https://github.com/quillstack/db) — the connection underneath that
+- [quillstack/db](https://github.com/quillstack/db) — the queries and the connection underneath
 - [quillstack/serializer](https://github.com/quillstack/serializer) — what decides which fields leave
 - [quillstack/framework](https://github.com/quillstack/framework) — where entities are wired in
 
